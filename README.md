@@ -36,6 +36,8 @@ More information about contributing to the project is here: [How to contribute t
 
 • Animated Splash Screen
 
+- Ability to Change App Tile background and Text color and opacity 
+
 
 ## Features in development:
 • Parallax Wallpaper
@@ -45,8 +47,9 @@ More information about contributing to the project is here: [How to contribute t
 • Adding Accessibility
 
 
-## Features looking to Drop
+## Features Dropped
+(If you would like these features re-implemented make an issue ticket).
 
-• Re-implementing swipe right for Cortana (In case your wondering it's 100% inspired by swipe right for Google Now)
+• wipe right for Cortana (In case your wondering it's 100% inspired by swipe right for Google Now)
 
 • Ok Cortana (inspired 100% by google now and siri)

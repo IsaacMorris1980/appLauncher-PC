@@ -1,21 +1,20 @@
-﻿using appLauncher.Core.Helpers;
 
-using Microsoft.AppCenter.Analytics;
-using Microsoft.AppCenter.Crashes;
-using Microsoft.Toolkit.Uwp.UI.Animations;
+﻿using Microsoft.Toolkit.Uwp.UI.Animations;
 
 using System;
 using System.Threading.Tasks;
+
 
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Navigation;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
 
-namespace appLauncher.Core.Pages
+namespace appLauncher
 {
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
@@ -30,7 +29,15 @@ namespace appLauncher.Core.Pages
         public static Image myImageCopy = new Image();
         public splashScreen(SplashScreen splashscreen, bool loadState, ref Frame RootFrame)
         {
-            try
+
+            this.InitializeComponent();
+            // Listen for window resize events to reposition the extended splash screen image accordingly.
+            // This ensures that the extended splash screen formats properly in response to window resizing.
+            Window.Current.SizeChanged += new WindowSizeChangedEventHandler(ExtendedSplash_OnResize);
+            GlobalVariables.AppsRetreived += PackageHelper_AppsRetreived;
+            mySplash = splashscreen;
+            if (mySplash != null)
+
             {
                 this.InitializeComponent();
                 // Listen for window resize events to reposition the extended splash screen image accordingly.
@@ -50,16 +57,14 @@ namespace appLauncher.Core.Pages
 
 
                 }
-
-                // Create a Frame to act as the navigation context
-
             }
-            catch (Exception es)
+            catch (Exception ex)
             {
-                Analytics.TrackEvent("Application crashed during splashscreen creation");
-                Crashes.TrackError(es);
+                Crashes.TrackError(ex);
             }
-            Analytics.TrackEvent("Splashscreen created");
+            // Create a Frame to act as the navigation context
+
+
         }
 
         private void PackageHelper_AppsRetreived(object sender, EventArgs e)
@@ -68,14 +73,19 @@ namespace appLauncher.Core.Pages
             {
                 DismissExtendedSplash();
             }
-            catch (Exception es)
+            catch (Exception ex)
             {
-                Analytics.TrackEvent("Crash occurred after all apps were loaded");
-                Crashes.TrackError(es);
+
+                Crashes.TrackError(ex);
             }
-            Analytics.TrackEvent("All apps were loaded");
+
         }
 
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+
+        }
 
         private async void DismissedEventHandler(SplashScreen sender, object args)
         {
@@ -93,18 +103,22 @@ namespace appLauncher.Core.Pages
                     }
                 });
 
-                dismissed = true;
 
 
-                await Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+            await Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+            {
+                while (appsLoaded == false)
+
                 {
-                    while (appsLoaded == false)
-                    {
-                        await theImage.Scale(0.9f, 0.9f, (float)theImage.ActualWidth / 2, (float)theImage.ActualHeight / 2, 1000, 0, EasingType.Linear).StartAsync();
-                        await theImage.Scale(1f, 1f, (float)theImage.ActualWidth / 2, (float)theImage.ActualHeight / 2, 1000, 0, EasingType.Linear).StartAsync();
+                    await theImage.Scale(0.9f, 0.9f, (float)theImage.ActualWidth / 2, (float)theImage.ActualHeight / 2, 1000, 0, EasingType.Linear).StartAsync();
+                    await theImage.Scale(1f, 1f, (float)theImage.ActualWidth / 2, (float)theImage.ActualHeight / 2, 1000, 0, EasingType.Linear).StartAsync();
 
 
-                    }
+                }
+
+
+            });
+
 
                 });
 
@@ -112,17 +126,11 @@ namespace appLauncher.Core.Pages
                 //await Task.Run(() => finalAppItem.getApps());
 
 
-                await ImageHelper.LoadBackgroundImages();
-                await packageHelper.LoadCollectionAsync();
+            await GlobalVariables.LoadCollectionAsync();
+            await Task.Delay(1500);
 
-                await Task.Delay(1500);
 
-            }
-            catch (Exception es)
-            {
-                Analytics.TrackEvent("Crashed occured during splash screen dismissal event handler");
-                Crashes.TrackError(es);
-            }
+
 
             // Complete app setup operations here...
 
@@ -151,8 +159,14 @@ namespace appLauncher.Core.Pages
 
 
 
-                    await theImage.Offset(-100, 100).StartAsync();
-                    var anim = theImage.Offset((float)width / 2, (float)-height / 2, 100, 0, EasingType.Cubic).Fade(0, 50, 50);
+
+                var imageXToTravelTo = width - imagePosX;
+
+
+
+                await theImage.Offset(-100, 100).StartAsync();
+                var anim = theImage.Offset((float)width / 2, (float)-height / 2, 100, 0, EasingType.Cubic).Fade(0, 50, 50);
+
 
 
                     anim.Completed += Anim_Completed;
@@ -161,30 +175,32 @@ namespace appLauncher.Core.Pages
 
                 });
             }
-            catch (Exception es)
+            catch (Exception ex)
             {
-                Analytics.TrackEvent("crashed during extended dissmissal");
-                Crashes.TrackError(es);
+                Crashes.TrackError(ex);
             }
-            Analytics.TrackEvent("Extended splashscreen dismissal");
-
         }
 
 
         private void Anim_Completed(object sender, AnimationSetCompletedEventArgs e)
         {
-
-            rootFrame.Content = new MainPage();
-            Window.Current.Content = rootFrame;
-            rootFrame.Navigate(typeof(MainPage));
+            try
+            {
+                Analytics.TrackEvent("Closing splashscreen and navigating to Mainpage");
+                rootFrame.Content = new MainPage();
+                Window.Current.Content = rootFrame;
+                rootFrame.Navigate(typeof(MainPage));
+            }
+            catch (Exception ex)
+            {
+                Crashes.TrackError(ex);
+            }
         }
 
         private void ExtendedSplash_OnResize(object sender, WindowSizeChangedEventArgs e)
         {
             try
             {
-
-
                 // Safely update the extended splash screen image coordinates. This function will be executed when a user resizes the window.
                 if (mySplash != null)
                 {
@@ -196,25 +212,27 @@ namespace appLauncher.Core.Pages
                     // PositionRing();
                 }
             }
-            catch (Exception es)
+            catch (Exception ex)
             {
-                Analytics.TrackEvent("Crashed during splashscreen anaimation");
-                Crashes.TrackError(es);
+                Crashes.TrackError(ex);
             }
 
         }
 
         void PositionImage()
         {
-            theImage.SetValue(Canvas.LeftProperty, splashImageRect.X);
-            theImage.SetValue(Canvas.TopProperty, splashImageRect.Y);
-            theImage.Height = splashImageRect.Height;
-            theImage.Width = splashImageRect.Width;
+            try
+            {
+                theImage.SetValue(Canvas.LeftProperty, splashImageRect.X);
+                theImage.SetValue(Canvas.TopProperty, splashImageRect.Y);
+                theImage.Height = splashImageRect.Height;
+                theImage.Width = splashImageRect.Width;
+            }
+            catch (Exception ex)
+            {
+                Crashes.TrackError(ex);
+            }
         }
-
-
-
-
     }
 
 }
